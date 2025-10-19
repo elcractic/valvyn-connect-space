@@ -16,12 +16,7 @@ const Navbar = () => {
         </Link>
 
         <div className="flex items-center gap-4">
-          <Link to="/login">
-            <Button variant="ghost" className="hover:bg-primary/10">
-              Login
-            </Button>
-          </Link>
-          <Link to="/signup">
+          <Link to="/auth">
             <Button className="bg-gradient-primary hover:shadow-glow transition-all">
               Get Started
             </Button>

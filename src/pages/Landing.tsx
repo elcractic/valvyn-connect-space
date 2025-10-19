@@ -64,14 +64,9 @@ const Landing = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-              <Link to="/signup">
+              <Link to="/auth">
                 <Button size="lg" className="bg-gradient-primary hover:shadow-glow transition-all text-lg px-8 py-6">
-                  Start Your Journey
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button size="lg" variant="outline" className="border-primary/50 hover:bg-primary/10 text-lg px-8 py-6">
-                  Sign In
+                  Get Started
                 </Button>
               </Link>
             </div>
@@ -118,7 +113,7 @@ const Landing = () => {
             <p className="text-xl text-muted-foreground">
               Join thousands discovering a better way to connect
             </p>
-            <Link to="/signup">
+            <Link to="/auth">
               <Button size="lg" className="bg-gradient-primary hover:shadow-glow transition-all text-lg px-10 py-6">
                 Create Your Account
               </Button>
