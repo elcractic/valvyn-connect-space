@@ -6,6 +6,7 @@ import FriendsView from "@/components/FriendsView";
 import DirectMessages from "@/components/DirectMessages";
 import NexusList from "@/components/NexusList";
 import UserPanel from "@/components/UserPanel";
+import NexusView from "@/components/NexusView";
 import { Loader2 } from "lucide-react";
 
 const Home = () => {
@@ -91,7 +92,7 @@ const Home = () => {
 
           <div className="h-px bg-border my-2" />
 
-          <NexusList onNexusSelect={(id) => setCurrentView(id)} />
+          <NexusList onNexusSelect={(id) => setCurrentView(id)} userId={user.id} />
         </div>
 
         <UserPanel userId={user.id} />
@@ -106,6 +107,9 @@ const Home = () => {
             selectedDM={selectedDM}
             onSelectDM={setSelectedDM}
           />
+        )}
+        {currentView !== "friends" && currentView !== "dm" && (
+          <NexusView nexusId={currentView} userId={user.id} />
         )}
       </div>
     </div>

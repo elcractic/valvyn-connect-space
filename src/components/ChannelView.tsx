@@ -1,45 +1,92 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Hash, Send, Smile, Paperclip, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 import Message from "@/components/Message";
 
 interface ChannelViewProps {
-  channelName: string;
+  channelId: string;
+  userId: string;
 }
 
-const ChannelView = ({ channelName }: ChannelViewProps) => {
+const ChannelView = ({ channelId, userId }: ChannelViewProps) => {
+  const [channel, setChannel] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
   const [message, setMessage] = useState("");
+  const { toast } = useToast();
 
-  const mockMessages = [
-    {
-      id: 1,
-      author: "Alice",
-      content: "Hey everyone! Welcome to Valvyn 🎉",
-      timestamp: "2:30 PM",
-      avatar: "A",
-    },
-    {
-      id: 2,
-      author: "Bob",
-      content: "This looks amazing! Love the design",
-      timestamp: "2:32 PM",
-      avatar: "B",
-    },
-    {
-      id: 3,
-      author: "Charlie",
-      content: "The glassmorphism effects are 🔥",
-      timestamp: "2:35 PM",
-      avatar: "C",
-    },
-  ];
+  useEffect(() => {
+    loadChannel();
+    loadMessages();
 
-  const handleSend = () => {
-    if (message.trim()) {
-      // In real app, would send message
+    const channel = supabase
+      .channel("messages")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `channel_id=eq.${channelId}`,
+        },
+        (payload) => {
+          loadMessages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [channelId]);
+
+  const loadChannel = async () => {
+    const { data } = await supabase
+      .from("channels")
+      .select("*")
+      .eq("id", channelId)
+      .single();
+
+    if (data) setChannel(data);
+  };
+
+  const loadMessages = async () => {
+    const { data } = await supabase
+      .from("messages")
+      .select(`
+        *,
+        profiles:author_id (username, avatar_url)
+      `)
+      .eq("channel_id", channelId)
+      .order("created_at", { ascending: true });
+
+    if (data) setMessages(data);
+  };
+
+  const handleSend = async () => {
+    if (!message.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .insert({
+          channel_id: channelId,
+          author_id: userId,
+          content: message.trim(),
+        });
+
+      if (error) throw error;
+
       setMessage("");
+    } catch (error: any) {
+      toast({
+        title: "Error sending message",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -49,7 +96,7 @@ const ChannelView = ({ channelName }: ChannelViewProps) => {
       <div className="h-14 px-4 flex items-center justify-between border-b border-border glass">
         <div className="flex items-center gap-2">
           <Hash className="h-5 w-5 text-muted-foreground" />
-          <span className="font-semibold text-foreground">{channelName}</span>
+          <span className="font-semibold text-foreground">{channel?.name || "Loading..."}</span>
         </div>
         <Button variant="ghost" size="icon">
           <Users className="h-5 w-5" />
@@ -59,9 +106,23 @@ const ChannelView = ({ channelName }: ChannelViewProps) => {
       {/* Messages */}
       <ScrollArea className="flex-1 custom-scrollbar">
         <div className="p-4 space-y-4">
-          {mockMessages.map((msg) => (
-            <Message key={msg.id} {...msg} />
+          {messages.map((msg) => (
+            <Message
+              key={msg.id}
+              author={msg.profiles?.username || "Unknown"}
+              content={msg.content}
+              timestamp={new Date(msg.created_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+              avatar={msg.profiles?.avatar_url || msg.profiles?.username?.[0] || "?"}
+            />
           ))}
+          {messages.length === 0 && (
+            <div className="text-center text-muted-foreground py-8">
+              No messages yet. Start the conversation!
+            </div>
+          )}
         </div>
       </ScrollArea>
 
@@ -76,7 +137,7 @@ const ChannelView = ({ channelName }: ChannelViewProps) => {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder={`Message #${channelName}`}
+              placeholder={`Message #${channel?.name || "channel"}`}
               className="bg-background/50 border-border/50 focus:border-primary pr-20"
             />
             <Button
